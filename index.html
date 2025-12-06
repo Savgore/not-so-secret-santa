@@ -240,7 +240,8 @@
                     randomSeed: 2
                 },
                 interaction: {
-                    dragNodes: true
+                    dragNodes: true,
+                    hover: true
                 }
             };
 
@@ -250,12 +251,35 @@
             network.on("dragEnd", function (params) {
                 if (params.nodes.length > 0) {
                     const draggedNodeId = params.nodes[0];
-                    const pointer = params.pointer.DOM;
-                    const nodeAtPointer = network.getNodeAt(pointer);
+                    const positions = network.getPositions();
+                    const dropPos = params.pointer.canvas;
 
-                    if (nodeAtPointer && nodeAtPointer !== draggedNodeId) {
+                    let targetNodeId = null;
+                    let minDist = Infinity;
+                    const threshold = 40; // Detection radius in pixels
+
+                    for (const nodeId in positions) {
+                        if (nodeId === draggedNodeId) continue;
+
+                        const pos = positions[nodeId];
+                        const dx = pos.x - dropPos.x;
+                        const dy = pos.y - dropPos.y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+
+                        if (dist < threshold && dist < minDist) {
+                            minDist = dist;
+                            targetNodeId = nodeId;
+                        }
+                    }
+
+                    if (targetNodeId) {
                         // Swap logic
-                        swapNodes(draggedNodeId, nodeAtPointer);
+                        swapNodes(draggedNodeId, targetNodeId);
+                    } else {
+                        // Snap back if not dropped on another node (optional, but nice)
+                        // Actually, vis-network handles the drag, so it stays where dropped.
+                        // We might want to re-layout or just leave it.
+                        // Let's leave it for now.
                     }
                 }
             });
@@ -411,6 +435,26 @@
         }
 
         setInterval(createSnowflake, 100);
+
+        // Initialize with Grinch characters
+        window.addEventListener('DOMContentLoaded', () => {
+            const initialNames = ["Grinch", "Cindy", "Max", "Mayor"];
+            const listDiv = document.getElementById('participants-list');
+            listDiv.innerHTML = ''; // Clear defaults
+
+            initialNames.forEach(name => {
+                const div = document.createElement('div');
+                div.className = 'input-group';
+                div.innerHTML = `
+                    <input type="text" placeholder="Name" class="participant-name" value="${name}">
+                    <button class="btn-remove" onclick="removeParticipant(this)">×</button>
+                `;
+                listDiv.appendChild(div);
+            });
+
+            updateConstraintDropdowns();
+            generatePairings(); // Auto-generate on load
+        });
     </script>
 </body>
 
