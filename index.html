@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Not So Secret Santa</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="static/style.css">
     <link
         href="https://fonts.googleapis.com/css2?family=Mountains+of+Christmas:wght@700&family=Roboto:wght@400;500&display=swap"
         rel="stylesheet">
@@ -56,16 +56,20 @@
                 <h2>The Circle of Giving</h2>
 
                 <div class="export-section">
-                    <h3>Copy & Paste from here</h3>
-                    <textarea id="markdown-output" readonly onclick="this.select()"></textarea>
-                    <button class="btn-copy" onclick="copyMarkdown()">Copy to Clipboard</button>
+                    <h3>Copy & Paste from here (or Import)</h3>
+                    <textarea id="markdown-output"
+                        placeholder="Paste configuration here (e.g. Name A -> Name B)"></textarea>
+                    <div class="button-row">
+                        <button class="btn-copy" onclick="copyMarkdown()">Copy to Clipboard</button>
+                        <button class="btn-import" onclick="importConfiguration()">Import Configuration</button>
+                    </div>
                 </div>
 
                 <div id="pairs-list" class="pairs-container"></div>
                 <div id="graph-container"></div>
                 <div class="action-buttons">
                     <button class="btn-shuffle" onclick="generatePairings()">🔀 Shuffle</button>
-                    <button class="btn-reset" onclick="reset()">Start Over</button>
+                    <!-- Start Over button removed as it's no longer needed in single page view -->
                 </div>
             </div>
         </main>
@@ -73,7 +77,11 @@
     </div>
 
     <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+    <script src="static/logic.js"></script>
     <script>
+        let network = null;
+        let currentPairs = [];
+
         function addParticipant() {
             const div = document.createElement('div');
             div.className = 'input-group';
@@ -152,19 +160,19 @@
             errorDiv.textContent = '';
 
             try {
-                const response = await fetch('/generate', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ names, constraints })
-                });
-
-                const data = await response.json();
-
-                if (!response.ok) {
-                    throw new Error(data.error || 'Failed to generate');
+                // Call client-side logic instead of fetch
+                if (names.length < 2) {
+                    throw new Error("Need at least 2 participants");
                 }
 
-                displayResults(data.pairs);
+                const pairs = solveSecretSanta(names, constraints);
+
+                if (!pairs) {
+                    throw new Error("No valid solution found with these constraints!");
+                }
+
+                currentPairs = pairs;
+                displayResults(currentPairs);
 
             } catch (e) {
                 errorDiv.textContent = e.message;
@@ -172,8 +180,9 @@
         }
 
         function displayResults(pairs) {
-            document.querySelector('.input-section').classList.add('hidden');
+            // Ensure results section is visible (remove hidden class if present)
             document.getElementById('results-section').classList.remove('hidden');
+            // Input section remains visible now
 
             const listContainer = document.getElementById('pairs-list');
             listContainer.innerHTML = '';
@@ -229,14 +238,83 @@
                 },
                 layout: {
                     randomSeed: 2
+                },
+                interaction: {
+                    dragNodes: true
                 }
             };
-            new vis.Network(container, data, options);
+
+            network = new vis.Network(container, data, options);
+
+            // Add Drag and Drop Swap Logic
+            network.on("dragEnd", function (params) {
+                if (params.nodes.length > 0) {
+                    const draggedNodeId = params.nodes[0];
+                    const pointer = params.pointer.DOM;
+                    const nodeAtPointer = network.getNodeAt(pointer);
+
+                    if (nodeAtPointer && nodeAtPointer !== draggedNodeId) {
+                        // Swap logic
+                        swapNodes(draggedNodeId, nodeAtPointer);
+                    }
+                }
+            });
+        }
+
+        function swapNodes(nodeA, nodeB) {
+            // Reconstruct ring from currentPairs
+            // currentPairs is [{giver: {name, avatar}, receiver: {name, avatar}}]
+            // Convert to simple map for traversal
+            const map = {};
+            const avatarMap = {};
+            currentPairs.forEach(p => {
+                map[p.giver.name] = p.receiver.name;
+                avatarMap[p.giver.name] = p.giver.avatar;
+                avatarMap[p.receiver.name] = p.receiver.avatar;
+            });
+
+            // Build ring array
+            const ring = [];
+            let current = currentPairs[0].giver.name;
+            const start = current;
+
+            // Safety break in case of infinite loop (shouldn't happen with valid ring)
+            let count = 0;
+            do {
+                ring.push(current);
+                current = map[current];
+                count++;
+            } while (current !== start && count < currentPairs.length + 1);
+
+            // Swap indices of nodeA and nodeB in the ring
+            const idxA = ring.indexOf(nodeA);
+            const idxB = ring.indexOf(nodeB);
+
+            if (idxA !== -1 && idxB !== -1) {
+                [ring[idxA], ring[idxB]] = [ring[idxB], ring[idxA]];
+
+                // Rebuild pairs from new ring
+                const newPairs = [];
+                for (let i = 0; i < ring.length; i++) {
+                    const giverName = ring[i];
+                    const receiverName = ring[(i + 1) % ring.length];
+                    newPairs.push({
+                        giver: { name: giverName, avatar: avatarMap[giverName] },
+                        receiver: { name: receiverName, avatar: avatarMap[receiverName] }
+                    });
+                }
+
+                currentPairs = newPairs;
+                displayResults(currentPairs);
+            }
         }
 
         function reset() {
-            document.querySelector('.input-section').classList.remove('hidden');
+            // In single page mode, reset might just clear the results?
+            // Or maybe clear inputs? 
+            // Let's just clear results for now.
             document.getElementById('results-section').classList.add('hidden');
+            currentPairs = [];
         }
 
         function copyMarkdown() {
@@ -249,6 +327,70 @@
             const originalText = btn.textContent;
             btn.textContent = "Copied!";
             setTimeout(() => btn.textContent = originalText, 2000);
+        }
+
+        function importConfiguration() {
+            const text = document.getElementById('markdown-output').value;
+            if (!text.trim()) return;
+
+            const lines = text.split('\n');
+            const newPairs = [];
+            const participants = new Set();
+
+            // Regex to match "Name A -> Name B"
+            // Allowing for some flexibility in spacing
+            const regex = /(.+?)\s*->\s*(.+)/;
+
+            for (const line of lines) {
+                if (!line.trim()) continue;
+                const match = line.match(regex);
+                if (match) {
+                    const giverName = match[1].trim();
+                    const receiverName = match[2].trim();
+
+                    participants.add(giverName);
+                    participants.add(receiverName);
+
+                    newPairs.push({
+                        giver: {
+                            name: giverName,
+                            avatar: `https://api.dicebear.com/9.x/thumbs/svg?seed=${giverName}`
+                        },
+                        receiver: {
+                            name: receiverName,
+                            avatar: `https://api.dicebear.com/9.x/thumbs/svg?seed=${receiverName}`
+                        }
+                    });
+                }
+            }
+
+            if (newPairs.length === 0) {
+                alert("No valid pairings found. Format should be: Name A -> Name B");
+                return;
+            }
+
+            // Update Participants List UI
+            const listDiv = document.getElementById('participants-list');
+            listDiv.innerHTML = ''; // Clear existing
+
+            participants.forEach(name => {
+                const div = document.createElement('div');
+                div.className = 'input-group';
+                div.innerHTML = `
+                    <input type="text" placeholder="Name" class="participant-name" value="${name}">
+                    <button class="btn-remove" onclick="removeParticipant(this)">×</button>
+                `;
+                listDiv.appendChild(div);
+            });
+
+            updateConstraintDropdowns();
+
+            // Update Results
+            currentPairs = newPairs;
+            displayResults(currentPairs);
+
+            // Keep the text in the textarea (displayResults overwrites it, so we might need to restore it or just let displayResults regenerate it)
+            // displayResults regenerates it, which is fine as it normalizes the format.
         }
 
         // Snow Effect
@@ -269,7 +411,6 @@
         }
 
         setInterval(createSnowflake, 100);
-
     </script>
 </body>
 

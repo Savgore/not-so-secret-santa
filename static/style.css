@@ -21,11 +21,15 @@ body {
 }
 
 .container {
-    max-width: 800px;
+    max-width: 1400px;
+    /* Wider container */
     margin: 0 auto;
     text-align: center;
     position: relative;
     z-index: 10;
+    display: flex;
+    flex-direction: column;
+    height: 95vh;
 }
 
 header h1 {
@@ -38,6 +42,39 @@ header h1 {
 
 header p {
     color: #e0e0e0;
+}
+
+header {
+    flex: 0 0 auto;
+}
+
+main#app {
+    display: flex;
+    flex: 1 1 auto;
+    gap: 20px;
+    overflow: hidden;
+    /* Prevent scrolling on body, scroll inside if needed */
+    text-align: left;
+}
+
+.input-section {
+    flex: 0 0 350px;
+    /* Fixed width for inputs */
+    overflow-y: auto;
+    padding-right: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+#results-section {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 12px;
+    padding: 20px;
+    overflow-y: auto;
 }
 
 .card {
@@ -126,15 +163,38 @@ button:active {
 }
 
 .hidden {
-    display: none;
+    display: none !important;
+}
+
+/* Adjust card margins in input section */
+.card {
+    margin-bottom: 0;
 }
 
 #graph-container {
+    flex: 1 1 auto;
+    min-height: 400px;
     width: 100%;
-    height: 500px;
     border: 2px dashed #ddd;
     border-radius: 12px;
     background: white;
+}
+
+/* Responsive adjustments */
+@media (max-width: 900px) {
+    main#app {
+        flex-direction: column;
+        overflow: visible;
+    }
+
+    .input-section {
+        flex: none;
+        width: 100%;
+    }
+
+    .container {
+        height: auto;
+    }
 }
 
 .error {
@@ -144,6 +204,42 @@ button:active {
     background: rgba(0, 0, 0, 0.5);
     padding: 5px;
     border-radius: 4px;
+}
+
+.button-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 5px;
+}
+
+.btn-import {
+    background-color: #9c27b0;
+    color: white;
+    flex: 1;
+}
+
+.btn-copy {
+    flex: 1;
+    margin-top: 0;
+    /* Reset margin since it's in flex row */
+    background-color: #2196f3;
+    /* Keep original background */
+    color: white;
+    /* Keep original color */
+}
+
+#markdown-output {
+    width: 100%;
+    height: 100px;
+    padding: 10px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    font-family: monospace;
+    margin-bottom: 5px;
+    box-sizing: border-box;
+    /* Make it look editable */
+    background-color: white;
+    cursor: text;
 }
 
 .pairs-container {
