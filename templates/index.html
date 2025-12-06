@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Not So Secret Santa</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Mountains+of+Christmas:wght@700&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎅 Not So Secret Santa 🎄</h1>
+            <p>Generate your Secret Santa ring with custom rules!</p>
+        </header>
+
+        <main id="app">
+            <div class="input-section">
+                <div class="card">
+                    <h2>Participants</h2>
+                    <div id="participants-list">
+                        <!-- Participant inputs will go here -->
+                        <div class="input-group">
+                            <input type="text" placeholder="Name" class="participant-name">
+                            <button class="btn-remove" onclick="removeParticipant(this)">×</button>
+                        </div>
+                        <div class="input-group">
+                            <input type="text" placeholder="Name" class="participant-name">
+                            <button class="btn-remove" onclick="removeParticipant(this)">×</button>
+                        </div>
+                        <div class="input-group">
+                            <input type="text" placeholder="Name" class="participant-name">
+                            <button class="btn-remove" onclick="removeParticipant(this)">×</button>
+                        </div>
+                    </div>
+                    <button class="btn-add" onclick="addParticipant()">+ Add Participant</button>
+                </div>
+
+                <div class="card">
+                    <h2>Constraints (Optional)</h2>
+                    <div id="constraints-list">
+                        <!-- Constraints will go here -->
+                    </div>
+                    <button class="btn-add" onclick="addConstraint()">+ Add Constraint</button>
+                </div>
+
+                <button class="btn-generate" onclick="generatePairings()">Generate Pairings 🎁</button>
+                <div id="error-message" class="error"></div>
+            </div>
+
+            <div id="results-section" class="hidden">
+                <h2>The Circle of Giving</h2>
+                <div id="graph-container"></div>
+                <button class="btn-reset" onclick="reset()">Start Over</button>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+    <script>
+        function addParticipant() {
+            const div = document.createElement('div');
+            div.className = 'input-group';
+            div.innerHTML = `
+                <input type="text" placeholder="Name" class="participant-name">
+                <button class="btn-remove" onclick="removeParticipant(this)">×</button>
+            `;
+            document.getElementById('participants-list').appendChild(div);
+            updateConstraintDropdowns();
+        }
+
+        function removeParticipant(btn) {
+            btn.parentElement.remove();
+            updateConstraintDropdowns();
+        }
+
+        function addConstraint() {
+            const div = document.createElement('div');
+            div.className = 'constraint-group';
+            div.innerHTML = `
+                <select class="giver-select"></select>
+                <select class="type-select">
+                    <option value="must">MUST give to</option>
+                    <option value="must_not">MUST NOT give to</option>
+                </select>
+                <select class="receiver-select"></select>
+                <button class="btn-remove" onclick="this.parentElement.remove()">×</button>
+            `;
+            document.getElementById('constraints-list').appendChild(div);
+            updateConstraintDropdowns(div);
+        }
+
+        function updateConstraintDropdowns(specificRow = null) {
+            const names = Array.from(document.querySelectorAll('.participant-name'))
+                .map(i => i.value.trim())
+                .filter(n => n);
+            
+            const rows = specificRow ? [specificRow] : document.querySelectorAll('.constraint-group');
+            
+            rows.forEach(row => {
+                const giverSelect = row.querySelector('.giver-select');
+                const receiverSelect = row.querySelector('.receiver-select');
+                
+                const currentGiver = giverSelect.value;
+                const currentReceiver = receiverSelect.value;
+                
+                giverSelect.innerHTML = '<option value="">Select Giver</option>';
+                receiverSelect.innerHTML = '<option value="">Select Receiver</option>';
+                
+                names.forEach(name => {
+                    giverSelect.add(new Option(name, name, false, name === currentGiver));
+                    receiverSelect.add(new Option(name, name, false, name === currentReceiver));
+                });
+            });
+        }
+        
+        // Update dropdowns when names change
+        document.getElementById('participants-list').addEventListener('input', (e) => {
+            if (e.target.classList.contains('participant-name')) {
+                updateConstraintDropdowns();
+            }
+        });
+
+        async function generatePairings() {
+            const names = Array.from(document.querySelectorAll('.participant-name'))
+                .map(i => i.value.trim())
+                .filter(n => n);
+            
+            const constraints = Array.from(document.querySelectorAll('.constraint-group')).map(row => ({
+                giver: row.querySelector('.giver-select').value,
+                type: row.querySelector('.type-select').value,
+                receiver: row.querySelector('.receiver-select').value
+            })).filter(c => c.giver && c.receiver);
+
+            const errorDiv = document.getElementById('error-message');
+            errorDiv.textContent = '';
+
+            try {
+                const response = await fetch('/generate', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ names, constraints })
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to generate');
+                }
+                
+                displayResults(data.pairs);
+                
+            } catch (e) {
+                errorDiv.textContent = e.message;
+            }
+        }
+
+        function displayResults(pairs) {
+            document.querySelector('.input-section').classList.add('hidden');
+            document.getElementById('results-section').classList.remove('hidden');
+            
+            const nodes = [];
+            const edges = [];
+            
+            pairs.forEach((pair, index) => {
+                // Add nodes if not exists (though all should exist)
+                if (!nodes.find(n => n.id === pair.giver.name)) {
+                    nodes.push({
+                        id: pair.giver.name, 
+                        label: pair.giver.name, 
+                        shape: 'image', 
+                        image: pair.giver.avatar,
+                        size: 30
+                    });
+                }
+                // Edges
+                edges.push({
+                    from: pair.giver.name, 
+                    to: pair.receiver.name, 
+                    arrows: 'to',
+                    color: {color: '#d32f2f'},
+                    width: 2
+                });
+            });
+            
+            const container = document.getElementById('graph-container');
+            const data = { nodes: new vis.DataSet(nodes), edges: new vis.DataSet(edges) };
+            const options = {
+                physics: {
+                    stabilization: false,
+                    barnesHut: {
+                        springLength: 200
+                    }
+                },
+                layout: {
+                    randomSeed: 2
+                }
+            };
+            new vis.Network(container, data, options);
+        }
+
+        function reset() {
+            document.querySelector('.input-section').classList.remove('hidden');
+            document.getElementById('results-section').classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
