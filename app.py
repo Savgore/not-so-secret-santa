@@ -7,7 +7,7 @@ app.secret_key = 'super_secret_santa_key'  # Required for flash messages
 class Participant:
     def __init__(self, name, avatar_url=None):
         self.name = name
-        self.avatar_url = avatar_url or f"https://robohash.org/{name}.png?set=set4"
+        self.avatar_url = avatar_url or f"https://api.dicebear.com/9.x/thumbs/svg?seed={name}"
 
 def solve_secret_santa(names, constraints):
     """
@@ -134,8 +134,8 @@ def generate():
     result = []
     for g, r in pairs:
         result.append({
-            'giver': {'name': g, 'avatar': f"https://robohash.org/{g}.png?set=set4"},
-            'receiver': {'name': r, 'avatar': f"https://robohash.org/{r}.png?set=set4"}
+            'giver': {'name': g, 'avatar': f"https://api.dicebear.com/9.x/thumbs/svg?seed={g}"},
+            'receiver': {'name': r, 'avatar': f"https://api.dicebear.com/9.x/thumbs/svg?seed={r}"}
         })
         
     return {"pairs": result}

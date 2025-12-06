@@ -54,11 +54,22 @@
 
             <div id="results-section" class="hidden">
                 <h2>The Circle of Giving</h2>
+
+                <div class="export-section">
+                    <h3>Copy & Paste from here</h3>
+                    <textarea id="markdown-output" readonly onclick="this.select()"></textarea>
+                    <button class="btn-copy" onclick="copyMarkdown()">Copy to Clipboard</button>
+                </div>
+
                 <div id="pairs-list" class="pairs-container"></div>
                 <div id="graph-container"></div>
-                <button class="btn-reset" onclick="reset()">Start Over</button>
+                <div class="action-buttons">
+                    <button class="btn-shuffle" onclick="generatePairings()">🔀 Shuffle</button>
+                    <button class="btn-reset" onclick="reset()">Start Over</button>
+                </div>
             </div>
         </main>
+        <div id="snow-container"></div>
     </div>
 
     <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
@@ -167,8 +178,8 @@
             const listContainer = document.getElementById('pairs-list');
             listContainer.innerHTML = '';
 
-            const nodes = [];
-            const edges = [];
+            // Generate Markdown
+            let markdownText = "";
 
             pairs.forEach((pair, index) => {
                 // Add to text list
@@ -177,6 +188,16 @@
                 item.innerHTML = `<strong>${pair.giver.name}</strong> ➔ <strong>${pair.receiver.name}</strong>`;
                 listContainer.appendChild(item);
 
+                // Add to markdown
+                markdownText += `${pair.giver.name} -> ${pair.receiver.name}\n`;
+            });
+
+            document.getElementById('markdown-output').value = markdownText.trim();
+
+            const nodes = [];
+            const edges = [];
+
+            pairs.forEach((pair, index) => {
                 // Add nodes if not exists (though all should exist)
                 if (!nodes.find(n => n.id === pair.giver.name)) {
                     nodes.push({
@@ -217,6 +238,38 @@
             document.querySelector('.input-section').classList.remove('hidden');
             document.getElementById('results-section').classList.add('hidden');
         }
+
+        function copyMarkdown() {
+            const copyText = document.getElementById("markdown-output");
+            copyText.select();
+            copyText.setSelectionRange(0, 99999); /* For mobile devices */
+            navigator.clipboard.writeText(copyText.value);
+
+            const btn = document.querySelector('.btn-copy');
+            const originalText = btn.textContent;
+            btn.textContent = "Copied!";
+            setTimeout(() => btn.textContent = originalText, 2000);
+        }
+
+        // Snow Effect
+        function createSnowflake() {
+            const snowflake = document.createElement('div');
+            snowflake.classList.add('snowflake');
+            snowflake.textContent = '❄';
+            snowflake.style.left = Math.random() * 100 + 'vw';
+            snowflake.style.animationDuration = Math.random() * 3 + 2 + 's'; // 2-5s
+            snowflake.style.opacity = Math.random();
+            snowflake.style.fontSize = Math.random() * 10 + 10 + 'px';
+
+            document.getElementById('snow-container').appendChild(snowflake);
+
+            setTimeout(() => {
+                snowflake.remove();
+            }, 5000);
+        }
+
+        setInterval(createSnowflake, 100);
+
     </script>
 </body>
 

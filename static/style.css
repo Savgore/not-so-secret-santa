@@ -11,30 +11,43 @@ body {
     margin: 0;
     padding: 20px;
     color: #333;
-    background-image: radial-gradient(#e0e0e0 1px, transparent 1px);
-    background-size: 20px 20px;
+    /* Removed grid background to make snow visible */
+    background: #1a1a2e;
+    /* Darker background for snow contrast */
+    color: #fff;
+    /* Light text for dark background */
+    min-height: 100vh;
+    overflow-x: hidden;
 }
 
 .container {
     max-width: 800px;
     margin: 0 auto;
     text-align: center;
+    position: relative;
+    z-index: 10;
 }
 
 header h1 {
     font-family: 'Mountains of Christmas', cursive;
-    color: var(--primary-red);
+    color: #ff5252;
     font-size: 3.5rem;
     margin-bottom: 0.5rem;
-    text-shadow: 2px 2px 0px #fff;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+header p {
+    color: #e0e0e0;
 }
 
 .card {
-    background: var(--card-bg);
+    background: rgba(255, 255, 255, 0.95);
+    /* Slightly transparent */
     border-radius: 12px;
     padding: 20px;
     margin-bottom: 20px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    color: #333;
 }
 
 h2 {
@@ -106,6 +119,12 @@ button:active {
     margin-top: 20px;
 }
 
+.btn-copy {
+    background-color: #2196f3;
+    color: white;
+    margin-top: 5px;
+}
+
 .hidden {
     display: none;
 }
@@ -119,9 +138,12 @@ button:active {
 }
 
 .error {
-    color: var(--primary-red);
+    color: #ff5252;
     margin-top: 10px;
     font-weight: bold;
+    background: rgba(0, 0, 0, 0.5);
+    padding: 5px;
+    border-radius: 4px;
 }
 
 .pairs-container {
@@ -139,4 +161,84 @@ button:active {
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     border: 1px solid #eee;
     font-size: 1.1rem;
+    color: #333;
+}
+
+.export-section {
+    margin-bottom: 20px;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 15px;
+    border-radius: 8px;
+    color: #fff;
+}
+
+.export-section h3 {
+    margin-top: 0;
+    color: #fff;
+}
+
+#markdown-output {
+    width: 100%;
+    height: 100px;
+    padding: 10px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    font-family: monospace;
+    margin-bottom: 5px;
+    box-sizing: border-box;
+    color: #333;
+}
+
+/* Snow Effect */
+#snow-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1;
+    overflow: hidden;
+}
+
+.snowflake {
+    position: absolute;
+    top: -10px;
+    color: #fff;
+    font-size: 1em;
+    font-family: Arial;
+    text-shadow: 0 0 1px #000;
+    animation-name: fall;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+}
+
+@keyframes fall {
+    0% {
+        transform: translateY(-10vh) translateX(0);
+    }
+
+    100% {
+        transform: translateY(110vh) translateX(20px);
+    }
+}
+
+.action-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 20px;
+}
+
+.btn-shuffle {
+    background-color: #ff9800;
+    color: white;
+    font-size: 1.1rem;
+    padding: 10px 20px;
+    box-shadow: 0 4px 0 #f57c00;
+}
+
+.btn-shuffle:active {
+    box-shadow: 0 0 0 #f57c00;
+    transform: translateY(4px);
 }
