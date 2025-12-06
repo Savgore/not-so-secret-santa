@@ -195,6 +195,20 @@ button:active {
     .container {
         height: auto;
     }
+
+    #graph-container {
+        height: 60vh;
+        /* Taller on mobile */
+        min-height: 500px;
+    }
+}
+
+.hint-text {
+    text-align: center;
+    color: #666;
+    font-style: italic;
+    margin: 10px 0;
+    font-size: 0.9rem;
 }
 
 .error {

@@ -66,6 +66,8 @@
                 </div>
 
                 <div id="pairs-list" class="pairs-container"></div>
+
+                <p class="hint-text">💡 Drag and drop on the graph to swap allocations manually!</p>
                 <div id="graph-container"></div>
                 <div class="action-buttons">
                     <button class="btn-shuffle" onclick="generatePairings()">🔀 Shuffle</button>
@@ -231,9 +233,10 @@
             const data = { nodes: new vis.DataSet(nodes), edges: new vis.DataSet(edges) };
             const options = {
                 physics: {
-                    stabilization: false,
+                    stabilization: true,
                     barnesHut: {
-                        springLength: 200
+                        springLength: 200,
+                        avoidOverlap: 1
                     }
                 },
                 layout: {
@@ -246,6 +249,11 @@
             };
 
             network = new vis.Network(container, data, options);
+
+            // Disable physics after stabilization to allow easy drag-and-drop
+            network.on("stabilizationIterationsDone", function () {
+                network.setOptions({ physics: false });
+            });
 
             // Add Drag and Drop Swap Logic
             network.on("dragEnd", function (params) {
